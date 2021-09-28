@@ -68,7 +68,7 @@ class AsciiImageKey {
 class AsciiImageProvider extends ImageProvider<AsciiImageKey> {
   const AsciiImageProvider({
     required this.imageProvider,
-    required this.imageAsciiArt,
+    this.pixelRatio = 0.8,
     this.width,
     this.height,
     this.allowUpscaling = false,
@@ -76,7 +76,7 @@ class AsciiImageProvider extends ImageProvider<AsciiImageKey> {
 
   final ImageProvider imageProvider;
 
-  final ImageAsciiArt imageAsciiArt;
+  final double pixelRatio;
 
   /// The width the image should decode to and cache.
   final int? width;
@@ -102,8 +102,9 @@ class AsciiImageProvider extends ImageProvider<AsciiImageKey> {
         'ResizeImage cannot be composed with another ImageProvider that applies '
         'cacheWidth, cacheHeight, or allowUpscaling.',
       );
-
-      ui.Image? _asciiImage = await imageAsciiArt.toAsciiImage();
+      ui.Image? _asciiImage =
+          await ImageAsciiArt(imageData: bytes, pixelRatio: pixelRatio)
+              .toAsciiImage();
       final _byteData =
           await _asciiImage!.toByteData(format: ui.ImageByteFormat.png);
       return decode(

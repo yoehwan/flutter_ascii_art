@@ -77,8 +77,11 @@ im.Image _grayScale(im.Image image) {
   return im.grayscale(image);
 }
 
-///
-List<String> _convertAsciiListFrom(Uint32List byteData) {
+/// [todo] refactoring..
+List<String> _convertAsciiListFrom(im.Image image) {
+  final  Uint32List byteData = image.data;
+  final _imageWidth = image.width;
+  final _imageHeight = image.height;
   final List<String> _list = [];
   final _data = byteData.buffer.asUint8List();
   for (int index = 0; index < _data.length; index += 4) {
@@ -86,7 +89,16 @@ List<String> _convertAsciiListFrom(Uint32List byteData) {
     String tableIndex = (byte / pow(2, 7)).toStringAsFixed(1);
     _list.add(ReversedGrayTable[tableIndex] ?? " ");
   }
-  return _list;
+
+  List<String> _col = [];
+  String row;
+
+  for (int index = 0; index < _imageHeight; index++) {
+    row = _list.sublist(_imageWidth * index, _imageWidth * (index + 1)).join();
+    _col.add(row);
+  }
+
+    return _col;
 }
 
 class ImageAsciiArt {
@@ -116,7 +128,7 @@ class ImageAsciiArt {
       print("Resized");
     }
     print("Ascii converting..");
-    final _asciiList = await compute(_convertAsciiListFrom, _image.data);
+    final _asciiList = await compute(_convertAsciiListFrom, _image);
     AsciiImage _asciiImage = AsciiImage(
       asciiList: _asciiList,
       width: _image.width,
@@ -135,17 +147,11 @@ class ImageAsciiArt {
 
     ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     ui.Canvas canvas = ui.Canvas(pictureRecorder);
-    List<String> _col = [];
-    String row;
 
-    for (int index = 0; index < _imageHeight; index++) {
-      row = ascii.asciiList.sublist(_imageWidth * index, _imageWidth * (index + 1)).join();
-      _col.add(row);
-    }
     print("drawing");
     TextPainter _tp = TextPainter(
       text: TextSpan(
-        children: _col.map((e) {
+        children: ascii.asciiList.map((e) {
           return TextSpan(text:e + "\n");
         }).toList(),
         style: GoogleFonts.robotoMono(
