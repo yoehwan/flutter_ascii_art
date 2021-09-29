@@ -20,6 +20,9 @@ class AsciiImage {
   final int width;
   final int height;
 
+
+
+
   Map<String, dynamic> toMap() {
     return {
       'asciiList': this.asciiList,

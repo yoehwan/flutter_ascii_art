@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -79,7 +80,7 @@ im.Image _grayScale(im.Image image) {
 
 /// [todo] refactoring..
 List<String> _convertAsciiListFrom(im.Image image) {
-  final  Uint32List byteData = image.data;
+  final Uint32List byteData = image.data;
   final _imageWidth = image.width;
   final _imageHeight = image.height;
   final List<String> _list = [];
@@ -98,7 +99,7 @@ List<String> _convertAsciiListFrom(im.Image image) {
     _col.add(row);
   }
 
-    return _col;
+  return _col;
 }
 
 class ImageAsciiArt {
@@ -107,8 +108,36 @@ class ImageAsciiArt {
     this.pixelRatio = 1.0,
   });
 
+  static Future<ImageAsciiArt> fromImageProvider({
+    required ImageProvider imageProvider,
+    required BuildContext context,
+    double pixelRatio = 1.0,
+  }) async {
+    Completer<Uint8List> imageCompleter = Completer();
+    DecoderCallback callback = (Uint8List bytes,
+        {int? cacheWidth, int? cacheHeight, bool? allowUpscaling}) {
+      return ui.instantiateImageCodec(bytes,
+          targetWidth: cacheWidth, targetHeight: cacheHeight);
+    };
+
+    final ImageStreamListener _listener =
+        ImageStreamListener((image, synchronousCall) async {
+      final png = await image.image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = png!.buffer.asUint8List();
+      imageCompleter.complete(byteData);
+    });
+
+    final _key =
+        await imageProvider.obtainKey(createLocalImageConfiguration(context));
+    final _completer = imageProvider.load(_key, callback);
+    _completer.addListener(_listener);
+    final byteData = await imageCompleter.future;
+    return ImageAsciiArt(imageData: byteData, pixelRatio: pixelRatio);
+  }
+
   final Uint8List imageData;
-  im.Image? get image=>im.decodeImage(imageData);
+
+  im.Image? get image => im.decodeImage(imageData);
   final double pixelRatio;
 
   bool get needResize => pixelRatio != 1.0;
@@ -141,7 +170,7 @@ class ImageAsciiArt {
   Future<ui.Image?> toAsciiImage() async {
     final ascii = await toAscii();
 
-    if(ascii==null)return null;
+    if (ascii == null) return null;
     final _imageWidth = ascii.width;
     final _imageHeight = ascii.height;
 
@@ -152,13 +181,10 @@ class ImageAsciiArt {
     TextPainter _tp = TextPainter(
       text: TextSpan(
         children: ascii.asciiList.map((e) {
-          return TextSpan(text:e + "\n");
+          return TextSpan(text: e + "\n");
         }).toList(),
         style: GoogleFonts.robotoMono(
-          color: Colors.black,
-          fontSize: 1,
-          letterSpacing: 0.35
-        ),
+            color: Colors.black, fontSize: 1, letterSpacing: 0.35),
       ),
       textDirection: TextDirection.ltr,
     );
